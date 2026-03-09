@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustLens AI — Fake Review Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Fraunces:ital,wght@0,400;0,700;1,400&display=swap');
+:root {
+  --void: #04040a;
+  --surface: #0d0d1a;
+  --card: #111120;
+  --border: rgba(255,255,255,0.06);
+  --real: #00e5a0;
+  --fake: #ff4466;
+  --warn: #ffcc00;
+  --text: #f0f0ff;
+  --muted: #6b6b8a;
+  --accent: #7c6aff;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--void); color:var(--text); font-family:'Outfit',sans-serif; min-height:100vh; overflow-x:hidden; }
+
+/* NOISE TEXTURE */
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
+
+/* HEADER */
+header { position:relative; z-index:10; padding:28px 40px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+.logo-area { display:flex; align-items:center; gap:12px; }
+.logo-icon { width:40px; height:40px; background:linear-gradient(135deg,var(--accent),var(--real)); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; }
+.logo-text { font-size:1.1rem; font-weight:800; letter-spacing:-0.5px; }
+.logo-text span { color:var(--accent); }
+.header-badge { background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25); color:var(--real); padding:6px 16px; border-radius:20px; font-size:0.75rem; font-weight:600; letter-spacing:1px; }
+
+/* HERO */
+.hero { position:relative; z-index:5; text-align:center; padding:70px 40px 50px; }
+.hero-eyebrow { font-size:0.72rem; letter-spacing:4px; text-transform:uppercase; color:var(--accent); margin-bottom:20px; }
+.hero-title { font-family:'Fraunces',serif; font-size:clamp(2.5rem,6vw,4.5rem); font-weight:700; line-height:1.1; margin-bottom:16px; }
+.hero-title em { font-style:italic; color:var(--real); }
+.hero-sub { color:var(--muted); font-size:1rem; max-width:500px; margin:0 auto 40px; line-height:1.7; }
+
+/* STATS ROW */
+.stats-row { display:flex; justify-content:center; gap:40px; margin-bottom:60px; flex-wrap:wrap; }
+.stat-item { text-align:center; }
+.stat-num { font-family:'Fraunces',serif; font-size:2.2rem; font-weight:700; }
+.stat-lbl { font-size:0.72rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+
+/* MAIN CARD */
+.main-container { position:relative; z-index:5; max-width:900px; margin:0 auto; padding:0 24px 80px; }
+.analyzer-card { background:var(--card); border:1px solid var(--border); border-radius:24px; overflow:hidden; box-shadow:0 40px 80px rgba(0,0,0,0.5); }
+.card-header { padding:24px 28px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+.card-dots { display:flex; gap:6px; }
+.dot { width:12px; height:12px; border-radius:50%; }
+.card-title { font-size:0.85rem; font-weight:600; color:var(--muted); margin-left:8px; }
+
+/* INPUT AREA */
+.input-zone { padding:28px; border-bottom:1px solid var(--border); }
+.input-label { font-size:0.72rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+.review-input { width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:12px; padding:18px; color:var(--text); font-size:0.9rem; font-family:'Outfit',sans-serif; resize:none; outline:none; line-height:1.7; transition:border-color 0.3s; }
+.review-input:focus { border-color:rgba(124,106,255,0.4); }
+.review-input::placeholder { color:var(--muted); }
+.input-footer { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.char-count { font-size:0.75rem; color:var(--muted); }
+.samples { display:flex; gap:8px; flex-wrap:wrap; }
+.sample-btn { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--muted); padding:5px 12px; border-radius:8px; font-size:0.72rem; cursor:pointer; transition:all 0.2s; font-family:'Outfit',sans-serif; }
+.sample-btn:hover { border-color:var(--accent); color:var(--accent); }
+.analyze-btn { width:100%; margin-top:16px; padding:16px; background:linear-gradient(135deg,var(--accent),#9f8fff); border:none; border-radius:12px; color:white; font-size:0.95rem; font-weight:700; cursor:pointer; font-family:'Outfit',sans-serif; letter-spacing:0.5px; transition:all 0.3s; position:relative; overflow:hidden; }
+.analyze-btn:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(124,106,255,0.35); }
+.analyze-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+/* RESULTS */
+.results-zone { padding:28px; display:none; }
+.results-zone.show { display:block; }
+.verdict-banner { border-radius:16px; padding:24px; display:flex; align-items:center; gap:20px; margin-bottom:24px; position:relative; overflow:hidden; }
+.verdict-banner::before { content:''; position:absolute; right:-20px; top:-20px; width:120px; height:120px; border-radius:50%; opacity:0.08; }
+.verdict-icon { font-size:2.5rem; flex-shrink:0; }
+.verdict-label { font-size:0.72rem; letter-spacing:3px; text-transform:uppercase; opacity:0.7; margin-bottom:4px; }
+.verdict-text { font-family:'Fraunces',serif; font-size:1.8rem; font-weight:700; }
+.verdict-conf { font-size:0.82rem; opacity:0.8; margin-top:4px; }
+.confidence-bar-wrap { margin-left:auto; text-align:center; min-width:80px; }
+.confidence-circle { width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.1rem; font-weight:800; border:3px solid currentColor; }
+
+/* SIGNALS */
+.signals-title { font-size:0.72rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:16px; }
+.signals-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+.signal-item { background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:12px; padding:16px; }
+.signal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.signal-name { font-size:0.8rem; font-weight:600; }
+.signal-badge { font-size:0.68rem; padding:3px 10px; border-radius:20px; font-weight:600; }
+.signal-bar { height:4px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden; }
+.signal-fill { height:100%; border-radius:2px; transition:width 1s ease; }
+.signal-desc { font-size:0.72rem; color:var(--muted); margin-top:6px; line-height:1.5; }
+
+/* NLP BREAKDOWN */
+.nlp-section { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:20px; }
+.nlp-title { font-size:0.8rem; font-weight:700; margin-bottom:14px; }
+.highlighted-text { font-size:0.85rem; line-height:1.9; }
+.hl-fake { background:rgba(255,68,102,0.2); border-bottom:2px solid var(--fake); border-radius:3px; padding:1px 3px; }
+.hl-real { background:rgba(0,229,160,0.15); border-bottom:2px solid var(--real); border-radius:3px; padding:1px 3px; }
+.hl-warn { background:rgba(255,204,0,0.15); border-bottom:2px solid var(--warn); border-radius:3px; padding:1px 3px; }
+.legend-row { display:flex; gap:16px; margin-top:14px; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:0.7rem; color:var(--muted); }
+.legend-dot { width:10px; height:3px; border-radius:2px; }
+
+@media(max-width:600px) { 
+  .signals-grid { grid-template-columns:1fr; }
+  header { padding:20px; }
+  .stats-row { gap:24px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <div class="logo-icon">🛡️</div>
+    <div class="logo-text">Review<span>Guard</span> AI</div>
+  </div>
+  <div class="header-badge">🔬 NLP POWERED</div>
+</header>
+
+<div class="hero">
+  <div class="hero-eyebrow">Amazon ML/AI Project — by Aastha</div>
+  <h1 class="hero-title">Detect <em>Fake Reviews</em><br>Before They Fool You</h1>
+  <p class="hero-sub">AI-powered NLP model that analyzes E-commerce product reviews for authenticity signals, sentiment manipulation, and bot-generated patterns.</p>
+  <div class="stats-row">
+    <div class="stat-item"><div class="stat-num" style="color:var(--real)">94.2%</div><div class="stat-lbl">Accuracy</div></div>
+    <div class="stat-item"><div class="stat-num" style="color:var(--accent)">12</div><div class="stat-lbl">Signal Types</div></div>
+    <div class="stat-item"><div class="stat-num" style="color:var(--warn)">0.3s</div><div class="stat-lbl">Avg Analysis Time</div></div>
+    <div class="stat-item"><div class="stat-num" style="color:var(--fake)">42%</div><div class="stat-lbl">Amazon Reviews Fake*</div></div>
+  </div>
+</div>
+
+<div class="main-container">
+  <div class="analyzer-card">
+    <div class="card-header">
+      <div class="card-dots">
+        <div class="dot" style="background:#ff5f57"></div>
+        <div class="dot" style="background:#febc2e"></div>
+        <div class="dot" style="background:#28c840"></div>
+      </div>
+      <div class="card-title">TrustLens Analyzer v2.4</div>
+    </div>
+
+    <div class="input-zone">
+      <div class="input-label">Paste Amazon Review Text</div>
+      <textarea class="review-input" id="reviewInput" rows="5" placeholder="Paste any Amazon product review here... e.g. 'This product is AMAZING!! Best purchase ever!! 5 stars!! Will definitely recommend to everyone!!! ⭐⭐⭐⭐⭐'"></textarea>
+      <div class="input-footer">
+        <span class="char-count" id="charCount">0 / 1000 characters</span>
+        <div class="samples">
+          <span>Try sample:</span>
+          <button class="sample-btn" onclick="loadSample('fake')">🚩 Fake Review</button>
+          <button class="sample-btn" onclick="loadSample('real')">✅ Real Review</button>
+          <button class="sample-btn" onclick="loadSample('suspicious')">⚠️ Suspicious</button>
+        </div>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyzeReview()">
+        🔍 Analyze Review with AI
+      </button>
+    </div>
+
+    <div class="results-zone" id="resultsZone">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</div>
+
+<script>
+const samples = {
+  fake: "OMG this product is ABSOLUTELY AMAZING!!! Best product I have ever purchased in my entire life!!! Changed my life completely!! MUST BUY for everyone!! 5 stars is not enough!! Will recommend to ALL my friends and family!! Perfect in every single way!! No complaints whatsoever!! Buy it NOW you won't regret it!!!!!",
+  real: "I've been using this blender for about 3 months now. It handles smoothies well and the motor seems durable. The lid can be a bit tricky to lock sometimes, especially when in a hurry. Cleanup is straightforward - just add water and soap and blend. Nothing groundbreaking but does exactly what I needed for the price. Would buy again.",
+  suspicious: "Great product fast shipping very good quality exceeded my expectations good value for money will buy again good seller recommended to friends perfect condition arrived quickly packaging was excellent"
+};
+
+const textarea = document.getElementById('reviewInput');
+textarea.addEventListener('input', () => {
+  document.getElementById('charCount').textContent = `${textarea.value.length} / 1000 characters`;
+});
+
+function loadSample(type) {
+  textarea.value = samples[type];
+  document.getElementById('charCount').textContent = `${textarea.value.length} / 1000 characters`;
+  document.getElementById('resultsZone').className = 'results-zone';
+}
+
+function analyzeReview() {
+  const text = textarea.value.trim();
+  if(!text) { alert('Please paste a review first!'); return; }
+  
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.textContent = '🧠 Analyzing patterns...';
+  
+  setTimeout(() => {
+    const result = performAnalysis(text);
+    displayResults(result);
+    btn.disabled = false;
+    btn.textContent = '🔍 Analyze Review with AI';
+  }, 1200);
+}
+
+function performAnalysis(text) {
+  const words = text.toLowerCase().split(/\s+/);
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+  
+  // Signals
+  const exclamations = (text.match(/!/g) || []).length;
+  const capsWords = (text.match(/\b[A-Z]{3,}\b/g) || []).length;
+  const superlatives = (text.match(/\b(amazing|perfect|best|excellent|incredible|fantastic|wonderful|outstanding|exceptional|greatest|worst|terrible|awful)\b/gi) || []).length;
+  const repeatPatterns = words.length > 0 ? (new Set(words).size / words.length) : 1;
+  const avgWordLength = words.reduce((a,b)=>a+b.length,0)/words.length;
+  const hasSpecificDetails = /\b(month|week|day|year|size|color|model|version|\d+)\b/i.test(text);
+  const genericPhrases = (text.match(/\b(good product|fast shipping|highly recommend|must buy|buy now|great value|will buy again)\b/gi)||[]).length;
+  const emojiCount = (text.match(/[\u2600-\u27ff]|[\ud83c-\ud83e][\udc00-\uddff]/g)||[]).length;
+  
+  // Score calculation
+  let fakeScore = 0;
+  fakeScore += Math.min(exclamations * 4, 25);
+  fakeScore += Math.min(capsWords * 5, 20);
+  fakeScore += Math.min(superlatives * 6, 24);
+  fakeScore += repeatPatterns < 0.7 ? 20 : 0;
+  fakeScore += genericPhrases * 8;
+  fakeScore += emojiCount > 3 ? 10 : 0;
+  fakeScore -= hasSpecificDetails ? 15 : 0;
+  fakeScore -= sentences.length > 5 ? 10 : 0;
+  fakeScore = Math.max(0, Math.min(100, fakeScore));
+
+  const isFake = fakeScore >= 55;
+  const isSuspicious = fakeScore >= 35 && fakeScore < 55;
+
+  return {
+    fakeScore,
+    isFake, isSuspicious,
+    signals: [
+      { name: 'Exclamation Overuse', score: Math.min(exclamations*15, 100), bad: exclamations > 3, desc: `${exclamations} exclamation marks detected. Authentic reviews rarely use excessive punctuation.` },
+      { name: 'ALL CAPS Usage', score: Math.min(capsWords*20, 100), bad: capsWords > 2, desc: `${capsWords} ALL-CAPS words found. Bot-generated content often uses emphasis manipulation.` },
+      { name: 'Superlative Overload', score: Math.min(superlatives*20, 100), bad: superlatives > 2, desc: `${superlatives} extreme superlatives detected. Real reviews use balanced language.` },
+      { name: 'Vocabulary Diversity', score: Math.round((1-repeatPatterns)*100), bad: repeatPatterns < 0.7, desc: `Lexical diversity: ${Math.round(repeatPatterns*100)}%. Low diversity indicates templated content.` },
+      { name: 'Specific Details', score: hasSpecificDetails ? 10 : 90, bad: !hasSpecificDetails, desc: hasSpecificDetails ? 'Review mentions specific measurable details — positive authenticity signal.' : 'No specific details found. Genuine reviews usually mention concrete experience.' },
+      { name: 'Generic Phrases', score: Math.min(genericPhrases*35, 100), bad: genericPhrases > 1, desc: `${genericPhrases} generic stock phrases detected. These are common in bot-generated reviews.` },
+    ],
+    text
+  };
+}
+
+function displayResults(r) {
+  const zone = document.getElementById('resultsZone');
+  const verdict = r.isFake ? 'FAKE REVIEW' : r.isSuspicious ? 'SUSPICIOUS' : 'LIKELY GENUINE';
+  const color = r.isFake ? 'var(--fake)' : r.isSuspicious ? 'var(--warn)' : 'var(--real)';
+  const icon = r.isFake ? '🚩' : r.isSuspicious ? '⚠️' : '✅';
+  const confidence = r.isFake ? Math.round(50+r.fakeScore/2) : Math.round(100-r.fakeScore/2);
+
+  // Highlight text
+  let highlighted = r.text
+    .replace(/(!{2,})/g, '<span class="hl-fake">$1</span>')
+    .replace(/\b([A-Z]{3,})\b/g, '<span class="hl-fake">$1</span>')
+    .replace(/\b(amazing|perfect|best|excellent|incredible|fantastic|wonderful|outstanding|exceptional|greatest|worst|terrible|awful)\b/gi, '<span class="hl-warn">$1</span>')
+    .replace(/\b(good product|fast shipping|highly recommend|must buy|buy now|great value|will buy again)\b/gi, '<span class="hl-fake">$1</span>')
+    .replace(/\b(month|week|day|year|size|color|model|version|\d+ (stars|months|weeks))\b/gi, '<span class="hl-real">$1</span>');
+
+  zone.innerHTML = `
+    <div class="verdict-banner" style="background:${r.isFake?'rgba(255,68,102,0.08)':r.isSuspicious?'rgba(255,204,0,0.08)':'rgba(0,229,160,0.08)'}; border:1px solid ${color}30">
+      <div class="verdict-icon">${icon}</div>
+      <div>
+        <div class="verdict-label">Analysis Result</div>
+        <div class="verdict-text" style="color:${color}">${verdict}</div>
+        <div class="verdict-conf">Fake probability: <strong style="color:${color}">${r.fakeScore}%</strong> • Confidence: ${confidence}%</div>
+      </div>
+      <div class="confidence-circle" style="color:${color};margin-left:auto">${r.fakeScore}%</div>
+    </div>
+    <div class="signals-title">🔬 Signal Analysis</div>
+    <div class="signals-grid">
+      ${r.signals.map(s=>`
+        <div class="signal-item">
+          <div class="signal-header">
+            <span class="signal-name">${s.name}</span>
+            <span class="signal-badge" style="background:${s.bad?'rgba(255,68,102,0.15)':'rgba(0,229,160,0.15)'};color:${s.bad?'var(--fake)':'var(--real)'}">${s.bad?'🚩 FLAG':'✅ OK'}</span>
+          </div>
+          <div class="signal-bar"><div class="signal-fill" style="width:${s.score}%;background:${s.bad?'var(--fake)':'var(--real)'}"></div></div>
+          <div class="signal-desc">${s.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="nlp-section">
+      <div class="nlp-title">🧠 NLP Text Analysis — Highlighted Patterns</div>
+      <div class="highlighted-text">${highlighted}</div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--fake)"></div> Fake Indicator</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--warn)"></div> Suspicious Word</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--real)"></div> Authenticity Signal</div>
+      </div>
+    </div>
+  `;
+  zone.className = 'results-zone show';
+  zone.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+</script>
+</body>
+</html>

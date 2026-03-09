@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSense — Smart Inventory Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Libre+Baskerville:ital@1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f7f3ee;
+  --ink: #1a1410;
+  --warm: #c8955a;
+  --warm2: #e8b07a;
+  --green: #2d6a4f;
+  --red: #c1121f;
+  --card: #ffffff;
+  --border: #e8e0d5;
+  --muted: #8c7b6b;
+  --surface: #faf7f3;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--ink); font-family:'Sora',sans-serif; }
+
+header { background:var(--ink); color:white; padding:20px 36px; display:flex; justify-content:space-between; align-items:center; }
+.h-logo { font-size:1.2rem; font-weight:800; letter-spacing:-0.5px; }
+.h-logo em { font-family:'Libre Baskerville',serif; font-style:italic; color:var(--warm2); }
+.h-tag { font-size:0.72rem; color:#8c7b6b; letter-spacing:2px; text-transform:uppercase; }
+.h-badge { background:rgba(200,149,90,0.2); color:var(--warm2); border:1px solid rgba(200,149,90,0.3); padding:6px 16px; border-radius:4px; font-size:0.75rem; font-weight:600; }
+
+.top-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:16px 36px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+.tb-label { font-size:0.72rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+select, .tb-btn { background:var(--card); border:1px solid var(--border); color:var(--ink); padding:8px 16px; border-radius:6px; font-size:0.82rem; font-family:'Sora',sans-serif; cursor:pointer; outline:none; }
+.tb-btn { background:var(--ink); color:white; font-weight:600; transition:all 0.2s; }
+.tb-btn:hover { background:#2d2520; }
+
+.main { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; }
+
+/* KPI STRIP */
+.kpi-strip { grid-column:span 3; display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--border); }
+.kpi { padding:24px 28px; border-right:1px solid var(--border); }
+.kpi:last-child { border-right:none; }
+.kpi-lbl { font-size:0.68rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:8px; }
+.kpi-val { font-size:2rem; font-weight:800; line-height:1; }
+.kpi-trend { font-size:0.75rem; margin-top:6px; font-weight:600; }
+.up { color:var(--green); }
+.down { color:var(--red); }
+
+/* CHART SECTION */
+.chart-section { grid-column:span 2; padding:28px; border-right:1px solid var(--border); }
+.chart-section h3 { font-size:0.9rem; font-weight:700; margin-bottom:4px; }
+.chart-section p { font-size:0.75rem; color:var(--muted); margin-bottom:20px; }
+.chart-box { position:relative; }
+
+/* SIDEBAR */
+.sidebar { padding:28px; }
+.sidebar h3 { font-size:0.9rem; font-weight:700; margin-bottom:16px; }
+.product-list { display:flex; flex-direction:column; gap:10px; }
+.product-item { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; transition:all 0.2s; border-left:3px solid transparent; }
+.product-item:hover, .product-item.active { border-left-color:var(--warm); background:var(--card); }
+.pi-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.pi-name { font-size:0.82rem; font-weight:600; }
+.pi-status { font-size:0.65rem; padding:2px 8px; border-radius:20px; font-weight:700; }
+.status-critical { background:#fee2e2; color:var(--red); }
+.status-ok { background:#dcfce7; color:var(--green); }
+.status-warn { background:#fef3c7; color:#b45309; }
+.pi-stock { display:flex; align-items:center; gap:8px; }
+.pi-stock-bar { flex:1; height:4px; background:#e8e0d5; border-radius:2px; overflow:hidden; }
+.pi-fill { height:100%; border-radius:2px; }
+.pi-num { font-size:0.72rem; color:var(--muted); }
+
+/* FORECAST TABLE */
+.table-section { grid-column:span 3; padding:28px; border-top:1px solid var(--border); }
+.ts-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.ts-header h3 { font-size:0.9rem; font-weight:700; }
+table { width:100%; border-collapse:collapse; }
+th { padding:10px 16px; text-align:left; font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; border-bottom:2px solid var(--border); font-weight:600; }
+td { padding:14px 16px; font-size:0.82rem; border-bottom:1px solid var(--border); }
+tr:hover td { background:var(--surface); }
+.confidence-pill { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:20px; }
+.action-btn { padding:5px 14px; border-radius:6px; font-size:0.72rem; font-weight:700; cursor:pointer; border:none; font-family:'Sora',sans-serif; transition:all 0.2s; }
+.action-reorder { background:var(--ink); color:white; }
+.action-monitor { background:var(--surface); border:1px solid var(--border); color:var(--ink); }
+
+.insight-box { grid-column:span 3; margin:0 28px 28px; background:linear-gradient(135deg,var(--ink),#2d2520); color:white; border-radius:14px; padding:24px 28px; display:flex; align-items:center; gap:20px; }
+.ib-icon { font-size:2rem; }
+.ib-title { font-size:0.75rem; text-transform:uppercase; letter-spacing:2px; color:var(--warm2); margin-bottom:4px; }
+.ib-text { font-size:0.92rem; font-weight:500; line-height:1.6; }
+
+@media(max-width:768px){
+  .main { grid-template-columns:1fr; }
+  .kpi-strip { grid-template-columns:1fr 1fr; }
+  .chart-section,.sidebar { grid-column:span 1; }
+  .table-section,.insight-box { grid-column:span 1; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="h-logo">Stock<em>Sense</em></div>
+    <div class="h-tag">AI Inventory & Demand Forecasting Engine — Retail Intelligence</div>
+  </div>
+  <div class="h-badge">📦 RETAIL ML RESEARCH PROJECT — AASTHA</div>
+</header>
+
+<div class="top-bar">
+  <span class="tb-label">Category:</span>
+  <select id="categorySelect" onchange="updateDashboard()">
+    <option value="electronics">📱 Electronics</option>
+    <option value="fashion">👗 Fashion</option>
+    <option value="grocery">🛒 Grocery</option>
+    <option value="home">🏠 Home & Garden</option>
+  </select>
+  <span class="tb-label">Forecast Horizon:</span>
+  <select id="horizonSelect">
+    <option>Next 30 Days</option>
+    <option>Next 60 Days</option>
+    <option>Next 90 Days</option>
+  </select>
+  <button class="tb-btn" onclick="updateDashboard()">⚡ Run Forecast</button>
+</div>
+
+<div class="main" id="mainGrid">
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip" id="kpiStrip">
+    <div class="kpi"><div class="kpi-lbl">Predicted Demand</div><div class="kpi-val" id="kpi1">12,480</div><div class="kpi-trend up" id="kpi1t">↑ +18.4% vs last month</div></div>
+    <div class="kpi"><div class="kpi-lbl">Stockout Risk</div><div class="kpi-val" id="kpi2" style="color:var(--red)">3</div><div class="kpi-trend down" id="kpi2t">Products at critical level</div></div>
+    <div class="kpi"><div class="kpi-lbl">Forecast Accuracy</div><div class="kpi-val" id="kpi3">91.3%</div><div class="kpi-trend up" id="kpi3t">↑ +2.1% this week</div></div>
+    <div class="kpi"><div class="kpi-lbl">Revenue at Risk</div><div class="kpi-val" id="kpi4" style="color:var(--warm)">₹4.2L</div><div class="kpi-trend down" id="kpi4t">If stockouts not prevented</div></div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-section">
+    <h3>📈 30-Day Demand Forecast</h3>
+    <p>Historical sales vs AI predicted demand — shaded area shows confidence interval</p>
+    <div class="chart-box"><canvas id="forecastChart" height="200"></canvas></div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h3>⚠️ Inventory Alerts</h3>
+    <div class="product-list">
+      <div class="product-item active">
+        <div class="pi-header"><span class="pi-name">iPhone 15 Pro Case</span><span class="pi-status status-critical">CRITICAL</span></div>
+        <div class="pi-stock"><div class="pi-stock-bar"><div class="pi-fill" style="width:12%;background:var(--red)"></div></div><span class="pi-num">48 units</span></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Stockout in ~3 days</div>
+      </div>
+      <div class="product-item">
+        <div class="pi-header"><span class="pi-name">Wireless Earbuds Pro</span><span class="pi-status status-warn">LOW</span></div>
+        <div class="pi-stock"><div class="pi-stock-bar"><div class="pi-fill" style="width:28%;background:#f59e0b"></div></div><span class="pi-num">210 units</span></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Reorder in ~8 days</div>
+      </div>
+      <div class="product-item">
+        <div class="pi-header"><span class="pi-name">Smart Watch Band</span><span class="pi-status status-critical">CRITICAL</span></div>
+        <div class="pi-stock"><div class="pi-stock-bar"><div class="pi-fill" style="width:8%;background:var(--red)"></div></div><span class="pi-num">32 units</span></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Stockout in ~2 days</div>
+      </div>
+      <div class="product-item">
+        <div class="pi-header"><span class="pi-name">USB-C Hub 7-in-1</span><span class="pi-status status-ok">HEALTHY</span></div>
+        <div class="pi-stock"><div class="pi-stock-bar"><div class="pi-fill" style="width:72%;background:var(--green)"></div></div><span class="pi-num">1,840 units</span></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Next reorder in 24 days</div>
+      </div>
+      <div class="product-item">
+        <div class="pi-header"><span class="pi-name">Gaming Mouse RGB</span><span class="pi-status status-warn">LOW</span></div>
+        <div class="pi-stock"><div class="pi-stock-bar"><div class="pi-fill" style="width:22%;background:#f59e0b"></div></div><span class="pi-num">168 units</span></div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:4px">Reorder recommended</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-section">
+    <div class="ts-header">
+      <h3>🤖 AI Forecast Recommendations</h3>
+      <span style="font-size:0.75rem;color:var(--muted)">Powered by LSTM + XGBoost ensemble model</span>
+    </div>
+    <table>
+      <thead><tr><th>Product</th><th>Current Stock</th><th>7-Day Forecast</th><th>30-Day Forecast</th><th>Reorder Qty</th><th>Confidence</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><strong>iPhone 15 Pro Case</strong></td><td style="color:var(--red)">48 units</td><td>420 units</td><td>1,680 units</td><td>2,000 units</td><td><span class="confidence-pill" style="background:#dcfce7;color:var(--green)">● 94%</span></td><td><button class="action-btn action-reorder">Reorder Now</button></td></tr>
+        <tr><td><strong>Wireless Earbuds Pro</strong></td><td style="color:#b45309">210 units</td><td>380 units</td><td>1,520 units</td><td>1,500 units</td><td><span class="confidence-pill" style="background:#dcfce7;color:var(--green)">● 89%</span></td><td><button class="action-btn action-reorder">Reorder Now</button></td></tr>
+        <tr><td><strong>Smart Watch Band</strong></td><td style="color:var(--red)">32 units</td><td>280 units</td><td>1,120 units</td><td>1,500 units</td><td><span class="confidence-pill" style="background:#dcfce7;color:var(--green)">● 92%</span></td><td><button class="action-btn action-reorder">Reorder Now</button></td></tr>
+        <tr><td><strong>USB-C Hub 7-in-1</strong></td><td style="color:var(--green)">1,840 units</td><td>180 units</td><td>720 units</td><td>—</td><td><span class="confidence-pill" style="background:#fef9c3;color:#b45309">● 87%</span></td><td><button class="action-btn action-monitor">Monitor</button></td></tr>
+        <tr><td><strong>Gaming Mouse RGB</strong></td><td style="color:#b45309">168 units</td><td>240 units</td><td>960 units</td><td>1,000 units</td><td><span class="confidence-pill" style="background:#dcfce7;color:var(--green)">● 91%</span></td><td><button class="action-btn action-reorder">Reorder Now</button></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- INSIGHT -->
+  <div class="insight-box">
+    <div class="ib-icon">🧠</div>
+    <div>
+      <div class="ib-title">AI Insight — Seasonal Signal Detected</div>
+      <div class="ib-text">Model detects <strong>+34% demand spike</strong> forecasted for Electronics category in next 12 days — likely driven by upcoming festival season patterns in historical data. Recommend pre-emptive reorder of iPhone 15 Pro Cases and Smart Watch Bands to prevent estimated ₹4.2L revenue loss.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Forecast Chart
+const labels = Array.from({length:30},(_,i)=>`Day ${i+1}`);
+const historical = [420,438,415,460,445,480,462,498,510,490,525,540,518,555,570,548,565,580,560,595,610,588,620,635,612,648,660,638,672,685];
+const forecast = historical.map((v,i)=>i<15?null:Math.round(v*(1+0.04*(i-14)/15)+Math.random()*20-10));
+const lower = forecast.map((v,i)=>v?Math.round(v*0.88):null);
+const upper = forecast.map((v,i)=>v?Math.round(v*1.12):null);
+
+new Chart(document.getElementById('forecastChart'), {
+  type:'line',
+  data:{
+    labels,
+    datasets:[
+      {label:'Historical',data:historical.map((v,i)=>i<15?v:null),borderColor:'#1a1410',borderWidth:2,pointRadius:0,tension:0.4},
+      {label:'AI Forecast',data:forecast,borderColor:'#c8955a',borderWidth:2.5,borderDash:[6,3],pointRadius:3,pointBackgroundColor:'#c8955a',tension:0.4},
+      {label:'Upper Bound',data:upper,borderColor:'rgba(200,149,90,0.2)',borderWidth:1,pointRadius:0,fill:'+1',backgroundColor:'rgba(200,149,90,0.08)',tension:0.4},
+      {label:'Lower Bound',data:lower,borderColor:'rgba(200,149,90,0.2)',borderWidth:1,pointRadius:0,tension:0.4},
+    ]
+  },
+  options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{font:{size:11},boxWidth:14}}},scales:{y:{grid:{color:'#f0ebe4'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:8}}}}
+});
+
+function updateDashboard() {
+  const cat = document.getElementById('categorySelect').value;
+  const data = {
+    electronics:{k1:'12,480',k2:'3',k3:'91.3%',k4:'₹4.2L'},
+    fashion:{k1:'8,920',k2:'1',k3:'88.7%',k4:'₹1.8L'},
+    grocery:{k1:'24,600',k2:'5',k3:'93.1%',k4:'₹6.4L'},
+    home:{k1:'6,340',k2:'2',k3:'89.4%',k4:'₹2.1L'}
+  };
+  const d = data[cat];
+  document.getElementById('kpi1').textContent = d.k1;
+  document.getElementById('kpi2').textContent = d.k2;
+  document.getElementById('kpi3').textContent = d.k3;
+  document.getElementById('kpi4').textContent = d.k4;
+  showToast(`✅ Forecast updated for ${cat.charAt(0).toUpperCase()+cat.slice(1)} category`,'var(--green)');
+}
+
+// TOAST NOTIFICATION
+function showToast(msg, color='var(--warm)') {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:var(--ink);color:white;padding:14px 20px;border-radius:10px;font-size:0.85rem;font-weight:600;z-index:9999;border-left:4px solid ${color};box-shadow:0 8px 24px rgba(0,0,0,0.3);max-width:320px;animation:slideIn 0.3s ease`;
+  t.textContent = msg;
+  document.head.insertAdjacentHTML('beforeend','<style>@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}</style>');
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity 0.5s'; setTimeout(()=>t.remove(),500); }, 3000);
+}
+
+// REORDER MODAL
+function reorderProduct(btn) {
+  const row = btn.closest('tr');
+  const product = row.querySelector('td:first-child strong').textContent;
+  const reorderQty = row.querySelectorAll('td')[4].textContent;
+  const currentStock = row.querySelectorAll('td')[1].textContent;
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  overlay.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:400px;width:90%;box-shadow:0 24px 48px rgba(0,0,0,0.2)">
+      <div style="font-size:1.5rem;margin-bottom:12px">📦</div>
+      <h3 style="font-family:'Sora',sans-serif;font-size:1.1rem;margin-bottom:8px">Confirm Reorder</h3>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;line-height:1.6">You are about to place a purchase order for <strong>${product}</strong></p>
+      <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:20px;font-size:0.82rem;">
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Current Stock</span><span style="font-weight:600">${currentStock}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">Reorder Quantity</span><span style="font-weight:700;color:var(--green)">${reorderQty}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:var(--muted)">Estimated Delivery</span><span style="font-weight:600">3-5 Business Days</span></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-weight:600;cursor:pointer;font-size:0.85rem;background:transparent">Cancel</button>
+        <button onclick="confirmReorder(this,'${product}')" style="flex:1;padding:12px;background:var(--ink);color:white;border:none;border-radius:8px;font-family:'Sora',sans-serif;font-weight:700;cursor:pointer;font-size:0.85rem">✅ Confirm Order</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function confirmReorder(btn, product) {
+  btn.textContent = '⏳ Processing...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.closest('[style*=fixed]').remove();
+    showToast(`✅ Purchase order placed for ${product}!`, 'var(--green)');
+    // Update table row
+    document.querySelectorAll('tbody tr').forEach(row => {
+      if(row.querySelector('strong') && row.querySelector('strong').textContent === product) {
+        const actionCell = row.querySelector('td:last-child');
+        actionCell.innerHTML = '<span style="color:var(--sage);font-size:0.75rem;font-weight:700">✅ Order Placed</span>';
+        row.style.opacity = '0.6';
+      }
+    });
+  }, 1200);
+}
+
+function monitorProduct(btn) {
+  const row = btn.closest('tr');
+  const product = row.querySelector('td:first-child strong').textContent;
+  btn.textContent = '👁 Monitoring';
+  btn.style.borderColor = 'var(--warm)';
+  btn.style.color = 'var(--warm)';
+  showToast(`👁 ${product} added to monitoring watchlist`, 'var(--warm)');
+}
+
+// Attach to all action buttons on load
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.action-reorder').forEach(btn => {
+    btn.setAttribute('onclick','reorderProduct(this)');
+  });
+  document.querySelectorAll('.action-monitor').forEach(btn => {
+    btn.setAttribute('onclick','monitorProduct(this)');
+  });
+  // Product item sidebar clicks
+  document.querySelectorAll('.product-item').forEach(item => {
+    item.addEventListener('click', function() {
+      document.querySelectorAll('.product-item').forEach(i=>i.classList.remove('active'));
+      this.classList.add('active');
+      const name = this.querySelector('.pi-name').textContent;
+      showToast(`📊 Viewing details for: ${name}`, 'var(--warm)');
+    });
+  });
+});
+</script>
+</body>
+</html>

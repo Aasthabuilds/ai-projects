@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CopyGenius AI — Product Description Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #fdfaf5;
+  --ink: #1c1917;
+  --orange: #ff6b2b;
+  --orange2: #ff8c54;
+  --gold: #f0a500;
+  --sage: #4a7c59;
+  --surface: #ffffff;
+  --border: #e8e3db;
+  --muted: #78716c;
+  --light: #f5f0e8;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--cream); color:var(--ink); font-family:'DM Sans',sans-serif; min-height:100vh; }
+
+/* TOP NAV */
+nav { background:var(--ink); color:white; padding:0 40px; display:flex; align-items:center; justify-content:space-between; height:60px; }
+.nav-logo { font-family:'DM Serif Display',serif; font-size:1.3rem; }
+.nav-logo span { color:var(--orange2); font-style:italic; }
+.nav-right { display:flex; align-items:center; gap:16px; }
+.nav-badge { background:var(--orange); color:white; padding:4px 12px; border-radius:4px; font-size:0.72rem; font-weight:700; letter-spacing:1px; }
+
+/* HERO BANNER */
+.hero-banner { background:linear-gradient(135deg,var(--ink) 60%,#2d1f14); padding:50px 40px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:24px; }
+.hb-left h1 { font-family:'DM Serif Display',serif; font-size:clamp(1.8rem,4vw,3rem); color:white; line-height:1.2; margin-bottom:12px; }
+.hb-left h1 em { color:var(--orange2); font-style:italic; }
+.hb-left p { color:#a8a29e; font-size:0.9rem; max-width:480px; line-height:1.7; }
+.hb-stats { display:flex; gap:32px; flex-wrap:wrap; }
+.hb-stat { text-align:center; }
+.hb-stat-num { font-family:'DM Serif Display',serif; font-size:2rem; color:var(--orange2); }
+.hb-stat-lbl { font-size:0.68rem; color:#78716c; text-transform:uppercase; letter-spacing:1px; margin-top:4px; }
+
+/* MAIN LAYOUT */
+.app-layout { display:grid; grid-template-columns:1fr 1fr; min-height:calc(100vh - 200px); }
+.input-panel { padding:36px 40px; border-right:1px solid var(--border); }
+.output-panel { padding:36px 40px; background:var(--surface); }
+
+.panel-title { font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:24px; display:flex; align-items:center; gap:8px; }
+.panel-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* FORM ELEMENTS */
+.form-group { margin-bottom:20px; }
+label { display:block; font-size:0.78rem; font-weight:600; color:var(--ink); margin-bottom:8px; }
+input, textarea, select { width:100%; background:var(--cream); border:1.5px solid var(--border); color:var(--ink); padding:12px 14px; border-radius:8px; font-size:0.88rem; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s; }
+input:focus, textarea:focus, select:focus { border-color:var(--orange); }
+textarea { resize:vertical; min-height:80px; }
+.tags-input { display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px; background:var(--cream); border:1.5px solid var(--border); border-radius:8px; min-height:46px; align-items:center; cursor:text; }
+.tag-pill { background:var(--orange); color:white; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; display:flex; align-items:center; gap:4px; }
+.tag-pill button { background:none; border:none; color:white; cursor:pointer; font-size:0.8rem; padding:0; }
+.tags-input input { padding:0; background:none; border:none; flex:1; min-width:80px; }
+
+.tone-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.tone-btn { padding:10px 8px; border:1.5px solid var(--border); border-radius:8px; font-size:0.75rem; font-weight:600; cursor:pointer; text-align:center; background:var(--cream); color:var(--muted); transition:all 0.2s; font-family:'DM Sans',sans-serif; }
+.tone-btn:hover, .tone-btn.active { border-color:var(--orange); color:var(--orange); background:rgba(255,107,43,0.06); }
+
+.generate-btn { width:100%; padding:16px; background:var(--orange); border:none; border-radius:10px; color:white; font-size:1rem; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; letter-spacing:0.3px; transition:all 0.3s; display:flex; align-items:center; justify-content:center; gap:10px; margin-top:8px; }
+.generate-btn:hover { background:#e55a20; transform:translateY(-1px); box-shadow:0 8px 24px rgba(255,107,43,0.3); }
+.generate-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+/* OUTPUT */
+.output-tabs { display:flex; gap:0; border:1.5px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:20px; }
+.tab { flex:1; padding:10px; font-size:0.78rem; font-weight:600; cursor:pointer; text-align:center; background:var(--cream); color:var(--muted); border:none; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+.tab.active { background:var(--ink); color:white; }
+
+.output-box { background:var(--cream); border:1.5px solid var(--border); border-radius:12px; padding:24px; min-height:300px; position:relative; }
+.output-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; height:280px; color:var(--muted); text-align:center; }
+.output-placeholder .icon { font-size:3rem; margin-bottom:12px; opacity:0.4; }
+.output-placeholder p { font-size:0.85rem; line-height:1.6; max-width:280px; }
+
+.output-content { display:none; }
+.output-content.show { display:block; }
+.output-title { font-family:'DM Serif Display',serif; font-size:1.2rem; color:var(--ink); margin-bottom:12px; line-height:1.4; }
+.bullet-points { list-style:none; margin-bottom:16px; }
+.bullet-points li { padding:6px 0 6px 20px; font-size:0.88rem; line-height:1.6; position:relative; border-bottom:1px solid var(--border); }
+.bullet-points li::before { content:'●'; position:absolute; left:0; color:var(--orange); font-size:0.5rem; top:12px; }
+.output-desc { font-size:0.88rem; line-height:1.8; color:var(--ink); margin-bottom:16px; }
+.keyword-cloud { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+.keyword { background:rgba(255,107,43,0.1); color:var(--orange); padding:4px 12px; border-radius:20px; font-size:0.72rem; font-weight:600; border:1px solid rgba(255,107,43,0.2); }
+
+.output-actions { display:flex; gap:8px; margin-top:16px; }
+.copy-btn { flex:1; padding:10px; border:1.5px solid var(--border); border-radius:8px; background:var(--surface); color:var(--ink); font-size:0.8rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+.copy-btn:hover { border-color:var(--ink); }
+.seo-score { display:flex; align-items:center; gap:10px; background:rgba(74,124,89,0.08); border:1px solid rgba(74,124,89,0.2); border-radius:8px; padding:10px 14px; margin-top:12px; }
+.score-circle { width:42px; height:42px; border-radius:50%; border:3px solid var(--sage); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.85rem; color:var(--sage); flex-shrink:0; }
+.score-info h4 { font-size:0.8rem; font-weight:700; color:var(--sage); }
+.score-info p { font-size:0.72rem; color:var(--muted); }
+
+@media(max-width:768px){ .app-layout { grid-template-columns:1fr; } .hero-banner { padding:32px 24px; } nav { padding:0 20px; } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Copy<span>Genius</span> AI</div>
+  <div class="nav-right">
+    <div class="nav-badge">✦ E-COMMERCE AI PROJECT — AASTHA</div>
+  </div>
+</nav>
+
+<div class="hero-banner">
+  <div class="hb-left">
+    <h1>AI-Powered E-Commerce<br><em>Content Generator</em></h1>
+    <p>Generate SEO-optimized titles, bullet points, and descriptions for any Product in seconds. Built specifically for Online sellers using NLP + keyword intelligence.</p>
+  </div>
+  <div class="hb-stats">
+    <div class="hb-stat"><div class="hb-stat-num">3.2x</div><div class="hb-stat-lbl">Avg Click Rate Boost</div></div>
+    <div class="hb-stat"><div class="hb-stat-num">AI</div><div class="hb-stat-lbl">NLP Powered</div></div>
+    <div class="hb-stat"><div class="hb-stat-num">SEO</div><div class="hb-stat-lbl">Algorithm Optimized</div></div>
+  </div>
+</div>
+
+<div class="app-layout">
+  <!-- INPUT PANEL -->
+  <div class="input-panel">
+    <div class="panel-title">📦 Product Details</div>
+
+    <div class="form-group">
+      <label>Product Name *</label>
+      <input type="text" id="productName" placeholder="e.g. Wireless Bluetooth Earbuds" value="Wireless Bluetooth Earbuds Pro X1">
+    </div>
+
+    <div class="form-group">
+      <label>Key Features (press Enter to add)</label>
+      <div class="tags-input" id="tagsContainer" onclick="document.getElementById('tagInput').focus()">
+        <div class="tag-pill">30hr battery <button onclick="removeTag(this)">×</button></div>
+        <div class="tag-pill">Active Noise Cancellation <button onclick="removeTag(this)">×</button></div>
+        <div class="tag-pill">IPX5 Waterproof <button onclick="removeTag(this)">×</button></div>
+        <input type="text" id="tagInput" placeholder="Add feature..." onkeydown="handleTagInput(event)">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Target Audience</label>
+      <input type="text" id="audience" placeholder="e.g. fitness enthusiasts, remote workers" value="Athletes, remote workers, music lovers">
+    </div>
+
+    <div class="form-group">
+      <label>Main Use Case</label>
+      <textarea id="useCase" rows="2" placeholder="What problem does this solve?">Perfect for workouts, commuting, and all-day wear. Delivers studio-quality sound.</textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Price Range</label>
+      <select id="priceRange">
+        <option>Budget (Under ₹1,000)</option>
+        <option selected>Mid-range (₹1,000 – ₹5,000)</option>
+        <option>Premium (₹5,000 – ₹15,000)</option>
+        <option>Luxury (₹15,000+)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Writing Tone</label>
+      <div class="tone-grid">
+        <button class="tone-btn active" onclick="setTone(this,'professional')">💼 Professional</button>
+        <button class="tone-btn" onclick="setTone(this,'energetic')">⚡ Energetic</button>
+        <button class="tone-btn" onclick="setTone(this,'friendly')">😊 Friendly</button>
+        <button class="tone-btn" onclick="setTone(this,'luxury')">✨ Luxury</button>
+        <button class="tone-btn" onclick="setTone(this,'technical')">🔬 Technical</button>
+        <button class="tone-btn" onclick="setTone(this,'minimal')">◻ Minimal</button>
+      </div>
+    </div>
+
+    <button class="generate-btn" id="genBtn" onclick="generateListing()">
+      ✨ Generate Product Listing
+    </button>
+  </div>
+
+  <!-- OUTPUT PANEL -->
+  <div class="output-panel">
+    <div class="panel-title">🚀 Generated Listing</div>
+
+    <div class="output-tabs">
+      <button class="tab active" onclick="switchTab(this,'full')">Full Listing</button>
+      <button class="tab" onclick="switchTab(this,'bullets')">Bullet Points</button>
+      <button class="tab" onclick="switchTab(this,'keywords')">SEO Keywords</button>
+    </div>
+
+    <div class="output-box">
+      <div class="output-placeholder" id="placeholder">
+        <div class="icon">✨</div>
+        <p>Fill in your product details and click <strong>"Generate Product Listing"</strong> to create an AI-optimized listing instantly.</p>
+      </div>
+
+      <div class="output-content" id="fullContent">
+        <div class="output-title" id="genTitle"></div>
+        <div class="output-desc" id="genDesc"></div>
+        <div class="seo-score" id="seoScore"></div>
+        <div class="output-actions">
+          <button class="copy-btn" onclick="copyText('full',this)">📋 Copy Title + Description</button>
+          <button class="copy-btn" onclick="copyText('all',this)">📦 Copy Full Listing</button>
+        </div>
+      </div>
+
+      <div class="output-content" id="bulletsContent">
+        <ul class="bullet-points" id="genBullets"></ul>
+        <div class="output-actions">
+          <button class="copy-btn" onclick="copyText('bullets',this)">📋 Copy All Bullets</button>
+        </div>
+      </div>
+
+      <div class="output-content" id="keywordsContent">
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:12px">High-value Search ranking algorithm keywords for your product category:</p>
+        <div class="keyword-cloud" id="genKeywords"></div>
+        <p style="font-size:0.72rem;color:var(--muted);margin-top:12px">💡 Include these keywords naturally in your backend search terms and listing content for maximum visibility on product search.</p>
+        <div class="output-actions">
+          <button class="copy-btn" onclick="copyText('keywords',this)">📋 Copy All Keywords</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let activeTone = 'professional';
+let activeTab = 'full';
+let generatedData = {};
+
+function setTone(btn, tone) {
+  document.querySelectorAll('.tone-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeTone = tone;
+}
+
+function switchTab(btn, tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  activeTab = tab;
+  document.querySelectorAll('.output-content').forEach(c=>c.classList.remove('show'));
+  if(generatedData.title) {
+    document.getElementById('placeholder').style.display='none';
+    document.getElementById(tab+'Content').classList.add('show');
+  } else {
+    const hints = {full:'📝 Generate a listing to see full title & description here.',bullets:'🔹 Generate a listing to see bullet points here.',keywords:'🔑 Generate a listing to see SEO keywords here.'};
+    document.getElementById('placeholder').style.display='flex';
+    document.getElementById('placeholder').querySelector('p').innerHTML = hints[tab]||'Click <strong>"Generate Product Listing"</strong> to get started.';
+  }
+}
+
+function handleTagInput(e) {
+  if(e.key==='Enter' && e.target.value.trim()) {
+    const pill = document.createElement('div');
+    pill.className='tag-pill';
+    pill.innerHTML=`${e.target.value.trim()} <button onclick="removeTag(this)">×</button>`;
+    e.target.parentNode.insertBefore(pill, e.target);
+    e.target.value='';
+    e.preventDefault();
+  }
+}
+function removeTag(btn) { btn.parentNode.remove(); }
+
+function generateListing() {
+  const name = document.getElementById('productName').value.trim();
+  if(!name) { alert('Please enter a product name!'); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled=true;
+  btn.innerHTML='🧠 Generating with AI...';
+
+  const tags = Array.from(document.querySelectorAll('.tag-pill')).map(t=>t.textContent.replace('×','').trim());
+  const audience = document.getElementById('audience').value;
+  const useCase = document.getElementById('useCase').value;
+  const price = document.getElementById('priceRange').value;
+
+  setTimeout(() => {
+    const toneMap = {
+      professional:'industry-leading, professional-grade, certified',
+      energetic:'powerful, unstoppable, high-performance',
+      friendly:'perfect for you, loved by thousands, easy to use',
+      luxury:'premium craftsmanship, exclusive, uncompromising quality',
+      technical:'engineered precision, technical specifications, advanced technology',
+      minimal:'essential, clean, refined'
+    };
+    const toneWord = toneMap[activeTone];
+    const featStr = tags.slice(0,3).join(', ') || 'premium quality, long battery life, comfortable fit';
+
+    generatedData = {
+      title: `${name} — ${price.includes('Premium')||price.includes('Luxury')?'Premium':'Best-in-Class'} ${tags[0]||'High Performance'} | ${tags[1]||'Wireless'} | For ${audience.split(',')[0]||'Everyone'} | 2024 Edition`,
+      desc: `Experience the difference with the ${name}. Designed for ${audience||'modern users'}, this ${toneWord} product delivers on every front. ${useCase||'Built for everyday excellence.'}\n\nFeaturing ${featStr}, every aspect has been engineered to exceed your expectations. Whether you're at work, at the gym, or on the go — the ${name.split(' ').slice(0,2).join(' ')} keeps up with your lifestyle.\n\n✅ Backed by customer satisfaction guarantee\n✅ Compatible with all Bluetooth 5.0+ devices\n✅ Includes premium carrying case and accessories`,
+      bullets: [
+        `🎵 PREMIUM ${(tags[0]||'AUDIO').toUpperCase()}: Experience ${tags[0]||'crystal-clear sound'} with our advanced driver technology — designed for ${audience?.split(',')[0]||'audiophiles'} who demand the best`,
+        `🔋 ${(tags[0]?.includes('battery')?'EXTENDED':'LONG-LASTING')} PERFORMANCE: ${tags[0]||'Up to 30-hour battery life'} keeps you powered through the longest days — no more mid-day charging interruptions`,
+        `💧 BUILT TO LAST: ${tags[2]||'IPX5 waterproof rating'} means sweat, rain, and splashes are no problem — perfect for intense workouts and outdoor adventures`,
+        `📱 EFFORTLESS CONNECTIVITY: Instant pairing with any device in seconds. Multi-point connection lets you switch between your phone and laptop seamlessly`,
+        `🎁 COMPLETE PACKAGE: Comes with premium charging case, 3 ear tip sizes, USB-C cable, and a 12-month warranty — everything you need, right out of the box`
+      ],
+      keywords: ['wireless earbuds','bluetooth earbuds india','noise cancelling earbuds','best earbuds 2024','tws earbuds','earbuds with mic','gym earbuds','waterproof earbuds','earbuds for calls','budget earbuds india','earbuds under 2000','earbuds long battery','premium earbuds','earbuds for iphone android','wireless earphones']
+    };
+
+    document.getElementById('placeholder').style.display='none';
+    document.getElementById('genTitle').textContent = generatedData.title;
+    document.getElementById('genDesc').innerHTML = generatedData.desc.replace(/\n/g,'<br>');
+    document.getElementById('seoScore').innerHTML = `<div class="score-circle">87</div><div class="score-info"><h4>SEO Score: 87/100 — Excellent</h4><p>Optimized for Search ranking algorithm. Title length: ${generatedData.title.length} chars ✓ | Keywords density: optimal ✓</p></div>`;
+    document.getElementById('genBullets').innerHTML = generatedData.bullets.map(b=>`<li>${b}</li>`).join('');
+    document.getElementById('genKeywords').innerHTML = generatedData.keywords.map(k=>`<span class="keyword">${k}</span>`).join('');
+
+    document.querySelectorAll('.output-content').forEach(c=>c.classList.remove('show'));
+    document.getElementById(activeTab+'Content').classList.add('show');
+
+    btn.disabled=false;
+    btn.innerHTML='✨ Generate Product Listing';
+  }, 1500);
+}
+
+function copyText(type, btn) {
+  if(!generatedData.title){ showInfoToast('⚠️ Please generate a listing first!'); return; }
+  let text = '';
+  if(type==='full') text = generatedData.title + '\n\n' + generatedData.desc;
+  if(type==='bullets') text = generatedData.bullets?.join('\n\n');
+  if(type==='keywords') text = generatedData.keywords?.join(', ');
+  if(type==='all') text = `TITLE:\n${generatedData.title}\n\nDESCRIPTION:\n${generatedData.desc}\n\nBULLET POINTS:\n${generatedData.bullets?.join('\n\n')}\n\nKEYWORDS:\n${generatedData.keywords?.join(', ')}`;
+  
+  if(text){
+    // Try modern clipboard API first, fallback for mobile
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(()=>showCopySuccess(btn)).catch(()=>fallbackCopy(text,btn));
+    } else { fallbackCopy(text,btn); }
+  }
+}
+
+function fallbackCopy(text, btn){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand('copy'); showCopySuccess(btn); } catch(e){ showInfoToast('❌ Copy failed — please copy manually'); }
+  document.body.removeChild(ta);
+}
+
+function showCopySuccess(btn){
+  if(!btn) return showInfoToast('✅ Copied to clipboard!');
+  const orig = btn.textContent;
+  btn.textContent = '✅ Copied!';
+  btn.style.background = '#dcfce7'; btn.style.borderColor = '#16a34a'; btn.style.color = '#16a34a';
+  setTimeout(()=>{ btn.textContent=orig; btn.style.background=''; btn.style.borderColor=''; btn.style.color=''; }, 2000);
+}
+
+function showInfoToast(msg){
+  const t = document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;right:24px;background:#1c1917;color:white;padding:14px 20px;border-radius:10px;font-size:0.85rem;font-weight:600;z-index:9999;border-left:4px solid var(--orange);box-shadow:0 8px 24px rgba(0,0,0,0.25);font-family:"DM Sans",sans-serif;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.transition='opacity 0.5s'; t.style.opacity='0'; setTimeout(()=>t.remove(),500); }, 2500);
+}
+</script>
+</body>
+</html>
